@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>🔥 Wildfire Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background-color: #121212;
+        color: #ffffff;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 28px;
+        padding: 15px;
+        background: #1f1f1f;
+        border-bottom: 2px solid #333;
+      }
+
+      #map {
+        height: 80vh;
+        width: 100%;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px;
+        background: #1e1e1e;
+        border-top: 2px solid #333;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        background-color: #ff5722;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .btn:hover {
+        background-color: #e64a19;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        padding: 12px;
+        background-color: #1f1f1f;
+        border-top: 2px solid #333;
+        font-size: 18px;
+      }
+
+      .stats div {
+        background: #2a2a2a;
+        padding: 10px 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 5px #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title">🔥 Wildfire Simulation Interface</div>
+    <div id="map"></div>
+    <div class="stats">
+      <div id="areaBurned">🧱 Area Burned: 0 km²</div>
+      <div id="hoursPassed">⏱️ Hours Passed: 0</div>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="startSimulation()">Simulate</button>
+      <button class="btn" onclick="stopSimulation()">Stop</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      let ignitionPoint = null;
+      let marker = null;
+      let burnedSet = new Set();
+      let currentHour = 0;
+      let isSimulating = false;
+      let interval = null;
+
+      // 🔥 Get ignition point from URL if available and auto-start simulation
+      const params = new URLSearchParams(window.location.search);
+      const latParam = parseFloat(params.get("lat"));
+      const lonParam = parseFloat(params.get("lon"));
+
+      if (!isNaN(latParam) && !isNaN(lonParam)) {
+        ignitionPoint = L.latLng(latParam, lonParam);
+        currentHour = 0;
+        burnedSet.clear();
+        updateStats(0, 0);
+
+        if (marker) map.removeLayer(marker);
+
+        marker = L.marker(ignitionPoint)
+          .addTo(map)
+          .bindPopup("🔥 Ignition Point")
+          .openPopup();
+
+        map.setView(ignitionPoint, 16);
+        startSimulation();
+      }
+
+
+      const map = L.map("map").setView([30.5, 78.5], 8);
+
+      const satellite = L.tileLayer(
+        "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        {
+          maxZoom: 20,
+          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+        }
+      ).addTo(map);
+
+      map.on("click", function (e) {
+        ignitionPoint = e.latlng;
+        currentHour = 0;
+        burnedSet.clear();
+        updateStats(0, 0);
+
+        if (marker) map.removeLayer(marker);
+
+        marker = L.marker(ignitionPoint)
+          .addTo(map)
+          .bindPopup("🔥 Ignition Point")
+          .openPopup();
+
+        map.flyTo(ignitionPoint, 16, {
+          animate: true,
+          duration: 1.5,
+        });
+      });
+
+      function drawBurnedPixel(lat, lon) {
+        const key = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+        if (burnedSet.has(key)) return;
+        burnedSet.add(key);
+
+        const circle = L.circleMarker([lat, lon], {
+          radius: 6,
+          color: "#ff3c00",
+          fillColor: "#ff1100",
+          fillOpacity: 0.85,
+          weight: 1,
+        }).addTo(map);
+      }
+
+      async function simulateStep() {
+        if (!isSimulating || !ignitionPoint) return;
+
+        try {
+          const res = await fetch("http://127.0.0.1:5000/simulate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: ignitionPoint.lat,
+              lon: ignitionPoint.lng,
+              hours: currentHour + 1,
+            }),
+          });
+
+          const data = await res.json();
+
+          data.burned_pixels.forEach(([lat, lon]) => {
+            drawBurnedPixel(lat, lon);
+          });
+
+          updateStats(data.total_burned, data.hours_passed);
+          currentHour += 1;
+        } catch (err) {
+          console.error("🔥 Simulation failed", err);
+          stopSimulation();
+        }
+      }
+
+      function startSimulation() {
+        if (!ignitionPoint || isSimulating) return;
+        isSimulating = true;
+        interval = setInterval(simulateStep, 1000);
+      }
+
+      function stopSimulation() {
+        isSimulating = false;
+        clearInterval(interval);
+      }
+
+      function updateStats(pixels, hours) {
+        const area = (pixels * 100) / 10000000; // each pixel is 100 m²
+        document.getElementById(
+          "areaBurned"
+        ).textContent = `🧱 Area Burned: ${area.toLocaleString()} km²`;
+        document.getElementById(
+          "hoursPassed"
+        ).textContent = `⏱️ Hours Passed: ${hours}`;
+      }
+    </script>
+
+
+
+    <!-- <script>
+      const latFromFlask = "{{ lat }}";
+      const lonFromFlask = "{{ lon }}";
+
+      if (latFromFlask && lonFromFlask) {
+        ignitionPoint = { lat: parseFloat(latFromFlask), lng: parseFloat(lonFromFlask) };
+        currentHour = 0;
+        burnedSet.clear();
+        updateStats(0, 0);
+
+        if (marker) map.removeLayer(marker);
+
+        marker = L.marker(ignitionPoint)
+          .addTo(map)
+          .bindPopup("🔥 Ignition Point")
+          .openPopup();
+
+        map.flyTo(ignitionPoint, 16, {
+          animate: true,
+          duration: 1.5,
+        });
+
+        startSimulation(); // 🔥 auto-start
+      }
+    </script> -->
+
+  </body>
+</html>

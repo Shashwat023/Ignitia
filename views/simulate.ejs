@@ -1,0 +1,173 @@
+<% layout("/layout") -%>
+
+<div class="page-header">
+    <div class="container">
+        <h1 class="page-title">Fire Risk Prediction & Simulation</h1>
+        <p class="page-subtitle">Click on the map to select a point, then predict fire risk or simulate spread</p>
+    </div>
+</div>
+
+<section class="fire-analysis-section">
+    <div class="container">
+        <div class="analysis-interface">
+            <!-- Left Side: Map and Controls -->
+            <div class="map-section">
+                <!-- Interactive Map -->
+                <div class="map-container">
+                    <div id="uttarakhand-map" class="leaflet-map"></div>
+                    <input type="hidden" id="ignition-coords" value="">
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-primary" id="predict-fire-btn" disabled>
+                        Predict Fire Risk
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="simulate-fire-btn" onclick="simulateFire()" disabled>
+                        Simulate Fire Spread
+                    </button>
+
+                </div>
+            </div>
+            
+            <!-- Right Side: Environmental Data and Results -->
+            <div class="data-panel">
+                <!-- Environmental Input Features -->
+                <div class="environmental-data">
+                    <h3>Environmental Input Features</h3>
+                    <div class="env-grid">
+                        <div class="env-item">
+                            <span class="env-label">Temperature</span>
+                            <span class="env-value" id="temp-value">--°C</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-label">Humidity</span>
+                            <span class="env-value" id="humidity-value">--%</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-label">NDVI</span>
+                            <span class="env-value" id="ndvi-value">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-label">Elevation</span>
+                            <span class="env-value" id="elevation-value">--m</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-label">Wind Speed</span>
+                            <span class="env-value" id="wind-speed-value">-- km/h</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-label">Slope</span>
+                            <span class="env-value" id="slope-value">--°</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ML Prediction Results -->
+                <div class="prediction-results" id="prediction-results" style="display: none;">
+                    <h3>Fire Risk Prediction from ML:</h3>
+                    <div class="prediction-details">
+                        <div class="prediction-item">
+                            <span class="prediction-label">Risk:</span>
+                            <span class="prediction-value" id="confidence-value">0.65</span>
+                        </div>
+                        <div class="prediction-item">
+                            <span class="prediction-label">Label:</span>
+                            <span class="prediction-value risk-label" id="risk-label">FIRE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Simulation Results (shown when simulate is clicked) -->
+        <div class="simulation-results-section" id="simulation-results" style="display: none;">
+            <div class="results-header">
+                <h3>Fire Spread Simulation Results</h3>
+                <p>Predicted fire spread progression over time</p>
+            </div>
+            
+            <div class="time-series-grid">
+                <div class="time-series-item">
+                    <div class="time-label">After 1 Hour</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=1hr+Fire+Spread" alt="Fire spread after 1 hour" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 15 hectares</span>
+                    </div>
+                </div>
+                
+                <div class="time-series-item">
+                    <div class="time-label">After 2 Hours</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=2hr+Fire+Spread" alt="Fire spread after 2 hours" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 45 hectares</span>
+                    </div>
+                </div>
+                
+                <div class="time-series-item">
+                    <div class="time-label">After 3 Hours</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=3hr+Fire+Spread" alt="Fire spread after 3 hours" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 85 hectares</span>
+                    </div>
+                </div>
+                
+                <div class="time-series-item">
+                    <div class="time-label">After 6 Hours</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=6hr+Fire+Spread" alt="Fire spread after 6 hours" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 180 hectares</span>
+                    </div>
+                </div>
+                
+                <div class="time-series-item">
+                    <div class="time-label">After 12 Hours</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=12hr+Fire+Spread" alt="Fire spread after 12 hours" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 320 hectares</span>
+                    </div>
+                </div>
+                
+                <div class="time-series-item">
+                    <div class="time-label">After 24 Hours</div>
+                    <div class="simulation-image-container">
+                        <img src="/placeholder.svg?height=200&width=300&text=24hr+Fire+Spread" alt="Fire spread after 24 hours" class="simulation-result-image">
+                    </div>
+                    <div class="spread-stats">
+                        <span>Area: 580 hectares</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-actions">
+                <button class="btn btn-secondary">📥 Download Results</button>
+                <button class="btn btn-outline" id="reset-analysis">🔄 Reset Analysis</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+  document.getElementById("simulate-fire-btn").addEventListener("click", function () {
+    const coords = document.getElementById("ignition-coords").value;
+    if (!coords) {
+      alert("Please select a point on the map first.");
+      return;
+    }
+
+    const [lat, lon] = coords.split(',').map(s => s.trim());
+    // Optional: Pass coords in query string if needed later
+    const url = "http://localhost:5000/";
+    window.open(url, "_blank");
+  });
+</script>
