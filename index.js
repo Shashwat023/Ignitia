@@ -28,8 +28,8 @@ app.get("/", (req, res) => {
 
 app.get("/simulate", (req, res) => {
   res.render("simulate", {
-    title: "Home",
-    currentPage: "home",
+    title: "Predict & Simulate",
+    currentPage: "simulate",
   })
 })
 
@@ -87,13 +87,6 @@ app.post("/simulate-fire", async (req, res) => {
 app.get("/simulate_fire_redirect", (req, res) => {
   const { lat, lon } = req.query
   res.redirect(`/index.html?lat=${lat}&lon=${lon}`)
-})
-
-app.get("/download", (req, res) => {
-  res.render("download", {
-    title: "Home",
-    currentPage: "home",
-  })
 })
 
 // ===== ADDITIONAL ROUTES FOR IGNITIA =====

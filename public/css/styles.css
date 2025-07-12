@@ -45,12 +45,12 @@ body {
 }
 
 .navbar {
-  background-color: #fbbf24;
+  background-color: white;
   padding: 1rem 0;
 }
 
 .nav-container {
-  background-color: #fbbf24;
+  background-color: white;
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 0 20px;
@@ -96,12 +96,9 @@ body {
   padding: 0.5rem 0;
 }
 
-.nav-link:hover{
-  color: white;
-}
-
-.nav-link.active {
-  color: white;
+.nav-link:hover,
+.nav-link.active{
+  color: var(--primary-color);
 }
 
 .nav-toggle {

@@ -17,143 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  // Simulation Timeline Controls
-  const timeSlider = document.getElementById("time-slider")
-  const simulationMap = document.getElementById("simulation-map")
-  const currentTimeDisplay = document.getElementById("current-time")
-  const playBtn = document.getElementById("play-btn")
-  const pauseBtn = document.getElementById("pause-btn")
-  const resetBtn = document.getElementById("reset-btn")
-
-  if (timeSlider && simulationMap) {
-    const timeLabels = ["1 Hour", "2 Hours", "3 Hours", "6 Hours", "12 Hours", "24 Hours"]
-    const mapImages = [
-      "/placeholder.svg?height=500&width=800&text=1h",
-      "/placeholder.svg?height=500&width=800&text=3h",
-      "/placeholder.svg?height=500&width=800&text=6h",
-      "/placeholder.svg?height=500&width=800&text=12h",
-      "/placeholder.svg?height=500&width=800&text=24h",
-    ]
-
-    let isPlaying = false
-    let playInterval
-
-    timeSlider.addEventListener("input", function () {
-      const timeIndex = Number.parseInt(this.value)
-      updateSimulation(timeIndex)
-    })
-
-    function updateSimulation(timeIndex) {
-      if (simulationMap && currentTimeDisplay) {
-        simulationMap.src = mapImages[timeIndex]
-        currentTimeDisplay.textContent = timeLabels[timeIndex]
-      }
-    }
-
-    if (playBtn) {
-      playBtn.addEventListener("click", () => {
-        if (!isPlaying) {
-          isPlaying = true
-          playInterval = setInterval(() => {
-            let currentValue = Number.parseInt(timeSlider.value)
-            if (currentValue < 5) {
-              currentValue++
-              timeSlider.value = currentValue
-              updateSimulation(currentValue)
-            } else {
-              // Reset to beginning
-              timeSlider.value = 0
-              updateSimulation(0)
-            }
-          }, 2000) // Change every 2 seconds
-        }
-      })
-    }
-
-    if (pauseBtn) {
-      pauseBtn.addEventListener("click", () => {
-        isPlaying = false
-        clearInterval(playInterval)
-      })
-    }
-
-    if (resetBtn) {
-      resetBtn.addEventListener("click", () => {
-        isPlaying = false
-        clearInterval(playInterval)
-        timeSlider.value = 0
-        updateSimulation(0)
-      })
-    }
-  }
-
-  // Download Page Filters
-  const mapTypeFilter = document.getElementById("map-type")
-  const regionFilter = document.getElementById("region-filter")
-
-  if (mapTypeFilter || regionFilter) {
-    function filterMaps() {
-      const mapCards = document.querySelectorAll(".map-card")
-      const selectedType = mapTypeFilter ? mapTypeFilter.value : "all"
-      const selectedRegion = regionFilter ? regionFilter.value : "all"
-
-      mapCards.forEach((card) => {
-        const cardType = card.querySelector(".map-type-badge").textContent.toLowerCase()
-        const cardRegion = card.querySelector(".map-details").textContent.toLowerCase()
-
-        let showCard = true
-
-        if (selectedType !== "all" && !cardType.includes(selectedType)) {
-          showCard = false
-        }
-
-        if (selectedRegion !== "all" && !cardRegion.includes(selectedRegion)) {
-          showCard = false
-        }
-
-        card.style.display = showCard ? "block" : "none"
-      })
-    }
-
-    if (mapTypeFilter) {
-      mapTypeFilter.addEventListener("change", filterMaps)
-    }
-
-    if (regionFilter) {
-      regionFilter.addEventListener("change", filterMaps)
-    }
-  }
-
-  // Form Validation
-  const forms = document.querySelectorAll("form")
-  forms.forEach((form) => {
-    form.addEventListener("submit", (e) => {
-      const requiredFields = form.querySelectorAll("[required]")
-      let isValid = true
-
-      requiredFields.forEach((field) => {
-        if (!field.value.trim()) {
-          isValid = false
-          field.style.borderColor = "#FF5A5F"
-        } else {
-          field.style.borderColor = "#DDDDDD"
-        }
-      })
-
-      if (!isValid) {
-        e.preventDefault()
-        alert("Please fill in all required fields.")
-      }
-    })
-  })
-
-  // Set minimum date to today for date inputs
-  const dateInputs = document.querySelectorAll('input[type="date"]')
-  const today = new Date().toISOString().split("T")[0]
-  dateInputs.forEach((input) => {
-    input.min = today
-  })
-
   // Fire Analysis Functionality (Merged Predict + Simulate)
   const L = window.L // Declare the L variable
 
@@ -164,6 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     subdomains: ["mt0", "mt1", "mt2", "mt3"],
     attribution: "Map data © Google",
   }).addTo(map)
+
+  setTimeout(() => {
+  map.invalidateSize();
+}, 500);
+
 
   fetch("/js/uttrakhand.geojson")
     .then((response) => response.json())
@@ -179,7 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Restrict panning outside Uttarakhand
       map.setMaxBounds(bounds)
-      // map.setMinZoom(map.getZoom()); // Optional: lock zoom out
 
       // Prevent dragging too far outside
       map.on("drag", () => {
@@ -339,21 +206,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Show prediction results
         showPredictionResults(prediction)
 
-        // Show simulation results after a delay
-        // setTimeout(() => {
-        //   const simulationResults = document.getElementById("simulation-results")
-        //   if (simulationResults) {
-        //     simulationResults.style.display = "block"
-        //     simulationResults.classList.add("fade-in")
-
-        //     // Scroll to results
-        //     simulationResults.scrollIntoView({
-        //       behavior: "smooth",
-        //       block: "start",
-        //     })
-        //   }
-        // }, 1000)
-
         console.log("Simulation Data:", envData)
         console.log("Prediction:", prediction)
       } else {
@@ -368,49 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
       simulateBtn.classList.remove("btn-loading")
       simulateBtn.textContent = originalText
     }
-  })
-
-  // Reset Analysis Button Handler
-  document.getElementById("reset-analysis").addEventListener("click", () => {
-    // Hide results
-    const predictionResults = document.getElementById("prediction-results")
-    const simulationResults = document.getElementById("simulation-results")
-
-    if (predictionResults) predictionResults.style.display = "none"
-    if (simulationResults) simulationResults.style.display = "none"
-
-    // Clear marker
-    if (fireMarker) {
-      map.removeLayer(fireMarker)
-      fireMarker = null
-    }
-
-    // Reset coordinates
-    selectedCoords = null
-    document.getElementById("ignition-coords").value = ""
-
-    // Disable buttons
-    const predictBtn = document.getElementById("predict-fire-btn")
-    const simulateBtn = document.getElementById("simulate-fire-btn")
-
-    if (predictBtn) {
-      predictBtn.disabled = true
-      predictBtn.classList.add("btn-disabled")
-    }
-
-    if (simulateBtn) {
-      simulateBtn.disabled = true
-      simulateBtn.classList.add("btn-disabled")
-    }
-
-    // Reset environmental data
-    resetEnvironmentalData()
-
-    // Scroll back to map
-    document.getElementById("uttarakhand-map").scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    })
   })
 
   // Helper function to update environmental data display

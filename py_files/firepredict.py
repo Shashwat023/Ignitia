@@ -20,7 +20,7 @@ app.add_middleware(
 
 # Try to load model if available
 try:
-    with open(r"D:\codes\hackathon\hackorbit\py_files\best_random_forest_model.pkl", "rb") as f:
+    with open(r"D:\codes\hackathon\hackorbit\Ignitia\py_files\best_random_forest_model.pkl", "rb") as f:
         model = joblib.load(f)
         print("model succ loaded")
 except:
