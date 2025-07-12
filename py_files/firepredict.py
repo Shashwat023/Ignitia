@@ -46,6 +46,7 @@ class FireTile(BaseModel):
 class FireMapResponse(BaseModel):
     results: List[FireTile]
 # python -m uvicorn firepredict:app --reload
+# uvicorn py_files.firepredict:app --reload
 
 # ========== Endpoint ==========
 @app.post("/predict_fire_map", response_model=FireMapResponse)

@@ -191,6 +191,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let fireCircle = null // ⚠️ Added for circle
   let selectedCoords = null
 
+    map.on("mousemove", function (e) {
+    const lat = e.latlng.lat.toFixed(5);
+    const lng = e.latlng.lng.toFixed(5);
+    document.getElementById("coordsDisplay").textContent = `Lat: ${lat}, Lng: ${lng}`;
+  });
+
+
   // Map click handler
   map.on("click", (e) => {
     const { lat, lng } = e.latlng

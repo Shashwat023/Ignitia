@@ -16,6 +16,20 @@
                 <div class="map-container">
                     <div id="uttarakhand-map" class="leaflet-map"></div>
                     <input type="hidden" id="ignition-coords" value="">
+                    <div id="coordsDisplay" style="
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        background: rgba(255, 255, 255, 0.9);
+                        padding: 6px 10px;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-family: Arial, sans-serif;
+                        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+                        z-index: 1000;
+                        ">
+                        Lat: --, Lng: --
+                    </div>
                 </div>
                 
                 <!-- Action Buttons -->
@@ -155,7 +169,7 @@
             </div>
         </div>
     </div>
-</section>
+</section> 
 
 <script>
   document.getElementById("simulate-fire-btn").addEventListener("click", function () {

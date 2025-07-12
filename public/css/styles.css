@@ -45,10 +45,12 @@ body {
 }
 
 .navbar {
+  background-color: #fbbf24;
   padding: 1rem 0;
 }
 
 .nav-container {
+  background-color: #fbbf24;
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 0 20px;
@@ -86,6 +88,7 @@ body {
 }
 
 .nav-link {
+  /* color:white; */
   text-decoration: none;
   color: var(--text-secondary);
   font-weight: 500;
@@ -93,9 +96,12 @@ body {
   padding: 0.5rem 0;
 }
 
-.nav-link:hover,
+.nav-link:hover{
+  color: white;
+}
+
 .nav-link.active {
-  color: var(--primary-color);
+  color: white;
 }
 
 .nav-toggle {
