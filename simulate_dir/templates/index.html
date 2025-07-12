@@ -68,33 +68,32 @@
         border-radius: 10px;
         box-shadow: 0 0 5px #000;
       }
-
-      
     </style>
   </head>
   <body>
-    
-      <div class="title">Wildfire Simulation Interface</div>
-        <div class="map-container">
-          <!-- <div id="uttarakhand-map" class="leaflet-map"></div> -->
-            <input type="hidden" id="ignition-coords" value="">
-              <div id="coordsDisplay" style="
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background: black;
-                margin-top: 0.7rem;
-                padding: 10px 10px;
-                border-radius: 6px;
-                font-size: 14px;
-                font-family: Arial, sans-serif;
-                box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-                z-index: 1000;
-                ">
-                Lat: --, Lng: --
-              </div>
-        </div>
-    
+    <div class="title">Wildfire Simulation Interface</div>
+    <div class="map-container">
+      <input type="hidden" id="ignition-coords" value="" />
+      <div
+        id="coordsDisplay"
+        style="
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: black;
+          margin-top: 0.7rem;
+          padding: 10px 10px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-family: Arial, sans-serif;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+          z-index: 1000;
+        "
+      >
+        Lat: --, Lng: --
+      </div>
+    </div>
+
     <div id="map"></div>
     <div class="stats">
       <div id="areaBurned">Area Burned: 0 km²</div>
@@ -105,138 +104,168 @@
       <button class="btn" onclick="stopSimulation()">Stop</button>
     </div>
 
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-      let ignitionPoint = null;
-      let marker = null;
-      let burnedSet = new Set();
-      let currentHour = 0;
-      let isSimulating = false;
-      let interval = null;
+  let ignitionPoint = null;
+  let marker = null;
+  let burnedSet = new Set();
+  let currentHour = 0;
+  let isSimulating = false;
+  let interval = null;
 
-      const map = L.map("map").setView([30.5, 78.5], 8);
+  // 🔸 Store fading circles with opacity
+  let fadingCircles = [];
 
-      const satellite = L.tileLayer(
-        "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-        {
-          maxZoom: 20,
-          subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        }
-      ).addTo(map);
+  const map = L.map("map").setView([30.5, 78.5], 8);
 
-      map.on("click", function (e) {
-        ignitionPoint = e.latlng;
-        currentHour = 0;
-        burnedSet.clear();
-        updateStats(0, 0);
+  const satellite = L.tileLayer(
+    "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    {
+      maxZoom: 20,
+      subdomains: ["mt0", "mt1", "mt2", "mt3"],
+    }
+  ).addTo(map);
 
-        if (marker) map.removeLayer(marker);
+  map.on("click", function (e) {
+    ignitionPoint = e.latlng;
+    currentHour = 0;
+    burnedSet.clear();
+    updateStats(0, 0);
 
-        marker = L.marker(ignitionPoint)
-          .addTo(map)
-          .bindPopup("🔥 Ignition Point")
-          .openPopup();
+    if (marker) map.removeLayer(marker);
 
-        map.flyTo(ignitionPoint, 15, {
-          animate: true,
-          duration: 1.5,
+    marker = L.marker(ignitionPoint)
+      .addTo(map)
+      .bindPopup("🔥 Ignition Point")
+      .openPopup();
+
+    map.flyTo(ignitionPoint, 16, {
+      animate: true,
+      duration: 1.2,
+    });
+  });
+
+  // 🔸 Color gradient: bright red → orange → dull red
+  function getColorForOpacity(opacity) {
+    if (opacity >= 0.7) return "#ff5500"; // Bright Red
+    if (opacity >= 0.4) return "#cc3300"; // Orange
+    return "#4a1a1a"; // Dull Red
+  }
+
+  function drawBurnedPixel(lat, lon) {
+    const key = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+    if (burnedSet.has(key)) return;
+    burnedSet.add(key);
+
+    const opacity = 0.85;
+    const color = getColorForOpacity(opacity);
+
+    const circle = L.circleMarker([lat, lon], {
+      radius: 6,
+      color: color,
+      fillColor: color,
+      fillOpacity: opacity,
+      weight: 1,
+    }).addTo(map);
+
+    fadingCircles.push({ circle, opacity });
+  }
+
+  async function simulateStep() {
+    if (!isSimulating || !ignitionPoint) return;
+
+    try {
+      const res = await fetch("http://127.0.0.1:5000/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: ignitionPoint.lat,
+          lon: ignitionPoint.lng,
+          hours: currentHour + 1,
+        }),
+      });
+
+      const data = await res.json();
+
+      data.burned_pixels.forEach(([lat, lon]) => {
+        drawBurnedPixel(lat, lon);
+      });
+
+      updateStats(data.total_burned, data.hours_passed);
+      currentHour += 1;
+    } catch (err) {
+      console.error("🔥 Simulation failed", err);
+      stopSimulation();
+    }
+  }
+
+  // 🔸 Update fading color + opacity
+  function fadeStep() {
+    for (let i = 0; i < fadingCircles.length; i++) {
+      const item = fadingCircles[i];
+      if (item.opacity > 0.2) {
+        item.opacity -= 0.05;
+        const newColor = getColorForOpacity(item.opacity);
+        item.circle.setStyle({
+          fillOpacity: item.opacity,
+          fillColor: newColor,
+          color: newColor,
         });
-      });
-
-      function drawBurnedPixel(lat, lon) {
-        const key = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-        if (burnedSet.has(key)) return;
-        burnedSet.add(key);
-
-        const circle = L.circleMarker([lat, lon], {
-          radius: 6,
-          color: "#ff3c00",
-          fillColor: "#ff1100",
-          fillOpacity: 0.85,
-          weight: 1,
-        }).addTo(map);
       }
+    }
+  }
 
-      async function simulateStep() {
-        if (!isSimulating || !ignitionPoint) return;
+  function startSimulation() {
+    if (!ignitionPoint || isSimulating) return;
+    isSimulating = true;
+    interval = setInterval(() => {
+      simulateStep();
+      fadeStep();
+    }, 1000);
+  }
 
-        try {
-          const res = await fetch("http://127.0.0.1:5000/simulate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lat: ignitionPoint.lat,
-              lon: ignitionPoint.lng,
-              hours: currentHour + 1,
-            }),
-          });
+  function stopSimulation() {
+    isSimulating = false;
+    clearInterval(interval);
+  }
 
-          const data = await res.json();
+  function updateStats(pixels, hours) {
+    const area = (pixels * 100) / 10000000;
+    document.getElementById(
+      "areaBurned"
+    ).textContent = `🧱 Area Burned: ${area.toLocaleString()} km²`;
+    document.getElementById(
+      "hoursPassed"
+    ).textContent = `⏱️ Hours Passed: ${hours}`;
+  }
 
-          data.burned_pixels.forEach(([lat, lon]) => {
-            drawBurnedPixel(lat, lon);
-          });
+  const params = new URLSearchParams(window.location.search);
+  const latParam = parseFloat(params.get("lat"));
+  const lonParam = parseFloat(params.get("lon"));
 
-          updateStats(data.total_burned, data.hours_passed);
-          currentHour += 1;
-        } catch (err) {
-          console.error("🔥 Simulation failed", err);
-          stopSimulation();
-        }
-      }
+  if (!isNaN(latParam) && !isNaN(lonParam)) {
+    ignitionPoint = L.latLng(latParam, lonParam);
+    currentHour = 0;
+    burnedSet.clear();
+    updateStats(0, 0);
 
-      function startSimulation() {
-        if (!ignitionPoint || isSimulating) return;
-        isSimulating = true;
-        interval = setInterval(simulateStep, 1000);
-      }
+    if (marker) map.removeLayer(marker);
 
-      function stopSimulation() {
-        isSimulating = false;
-        clearInterval(interval);
-      }
+    marker = L.marker(ignitionPoint)
+      .addTo(map)
+      .bindPopup("🔥 Ignition Point")
+      .openPopup();
 
-      function updateStats(pixels, hours) {
-        const area = (pixels * 100) / 10000000; // each pixel is 100 m²
-        document.getElementById(
-          "areaBurned"
-        ).textContent = `🧱 Area Burned: ${area.toLocaleString()} km²`;
-        document.getElementById(
-          "hoursPassed"
-        ).textContent = `⏱️ Hours Passed: ${hours}`;
-      }
+    map.setView(ignitionPoint, 16);
+    // startSimulation();
+  }
 
-      // 🔥 Get ignition point from URL if available and auto-start simulation
-      const params = new URLSearchParams(window.location.search);
-      const latParam = parseFloat(params.get("lat"));
-      const lonParam = parseFloat(params.get("lon"));
-
-      if (!isNaN(latParam) && !isNaN(lonParam)) {
-        ignitionPoint = L.latLng(latParam, lonParam);
-        currentHour = 0;
-        burnedSet.clear();
-        updateStats(0, 0);
-
-        if (marker) map.removeLayer(marker);
-
-        marker = L.marker(ignitionPoint)
-          .addTo(map)
-          .bindPopup("🔥 Ignition Point")
-          .openPopup();
-
-        map.setView(ignitionPoint, 16);
-        // startSimulation();
-      }
-
-      map.on("mousemove", function (e) {
-        const lat = e.latlng.lat.toFixed(5);
-        const lng = e.latlng.lng.toFixed(5);
-        document.getElementById("coordsDisplay").textContent = `Lat: ${lat}, Lng: ${lng}`;
-      });
-
-
-    </script>
+  map.on("mousemove", function (e) {
+    const lat = e.latlng.lat.toFixed(5);
+    const lng = e.latlng.lng.toFixed(5);
+    document.getElementById("coordsDisplay").textContent = `Lat: ${lat}, Lng: ${lng}`;
+  });
+</script>
 
   </body>
 </html>
